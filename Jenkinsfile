@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('checkout source code') {
             steps {
-                git url: "https://gitlab.com/qacdevops/chaperootodo_client", branch: "master"
+                git url: "https://github.com/gitnicholas01/lbg-trio-task", branch: "master"
             }
         }
         stage('cleanup') {
