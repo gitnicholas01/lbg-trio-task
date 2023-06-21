@@ -8,58 +8,26 @@ pipeline {
     stages {
         stage('checkout source code') {
             steps {
-                git url: "https://github.com/gitnicholas01/lbg-trio-task", branch: "master"
+                git url: "https://github.com/gitnicholas01/lbg-trio-task.git", branch: "master"
             }
         }
-        stage('cleanup') {
-            steps {
-                sh '''
-                if docker logs chaperoo-db; then
-                    if docker exec chaperoo-db ls; then
-                        docker stop chaperoo-db
-		            else
-			            sleep 1
-                    fi
-                    docker rm chaperoo-db
-		        else
-		            sleep 1
-                fi
-                if docker logs chaperoo-service; then
-                    if docker exec chaperoo-service ls; then
-                        docker stop chaperoo-service
-		            else
-			            sleep 1
-                    fi
-                    docker rm chaperoo-service
-		        else
-		            sleep 1
-                fi
-                if docker logs chaperoo-client; then
-                    if docker exec chaperoo-client ls; then
-                        docker stop chaperoo-client
-		            else
-			            sleep 1
-                    fi
-                    docker rm chaperoo-client
-		        else
-		            sleep 1
-                fi
-                docker rmi chaperoo-client:v1
-                '''
-            }
-        }
+        
         stage('Build') {
             steps {
-                sh 'docker build -t chaperoo-client:v2 .'
+                sh '''docker build -t trio-app:v1 .
+		cd ../db
+                docker build -t trio-db:v1 .
+                   '''
             }
         }
         stage('run containers') {
             steps {
                 sh '''
-                docker network inspect chaperoo-net && sleep 1 || docker network create chaperoo-net
-                docker run -d -e MYSQL_ROOT_PASSWORD=${DB_PASSWORD} --name chaperoo-db --network chaperoo-net jordangrindrod/chaperoo-db:latest
-                docker run -d -e DB_PASSWORD=${DB_PASSWORD} --name chaperoo-service --network chaperoo-net jordangrindrod/chaperoo-service:latest
-                docker run -d -p 80:80 --network chaperoo-net --name chaperoo-client chaperoo-client:v2
+                docker network inspect trio-net && sleep 1 || docker network create trio-net
+                docker run -d -p --network trio-net --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} trio-db:v1
+		docker run -d -p --network trio-net --name flask-app -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} trio-app:v1
+                docker run -d -p 80:80 --network trio-net --mount type=bind,source=$(pwd)/nginx/nginx.conf,target=/etc/nginx/nginx.conf
+		
                 '''
             }
         }
